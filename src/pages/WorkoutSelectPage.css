@@ -30,39 +30,17 @@
   margin-bottom: 1.25rem;
 }
 
-.workout-select__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 1.35rem;
-}
-
-.workout-select__brand {
-  margin: 0;
-  font-family: var(--heading);
-  font-size: clamp(1.35rem, 5.5vw, 1.7rem);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--text-h);
-}
-
-.workout-select__sign-out {
-  flex-shrink: 0;
+.workout-select__back {
   min-height: 2.5rem;
-  padding: 0.4rem 0.7rem;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 0.45rem;
-  background: transparent;
+  margin: 0 0 0.85rem;
+  padding: 0.35rem 0;
+  border: none;
+  background: none;
   color: var(--accent);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.92rem;
+  font-weight: 700;
   cursor: pointer;
-}
-
-.workout-select__sign-out:active {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  text-align: left;
 }
 
 .workout-select__title {

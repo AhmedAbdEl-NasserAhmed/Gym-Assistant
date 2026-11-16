@@ -1,17 +1,27 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getProgramExercises } from '../api/programExercises'
+import {
+  getProgramExercises,
+  type ProgramExercise,
+} from '../api/programExercises'
 import type { WorkoutProgram } from '../api/workoutPrograms'
+import { ExerciseLogPage } from './ExerciseLogPage'
 import './ProgramExercisesPage.css'
 
 type ProgramExercisesPageProps = {
   program: WorkoutProgram
+  dateKey: string
   onBack: () => void
 }
 
 export function ProgramExercisesPage({
   program,
+  dateKey,
   onBack,
 }: ProgramExercisesPageProps) {
+  const [selectedExercise, setSelectedExercise] =
+    useState<ProgramExercise | null>(null)
+
   const {
     data: exercises = [],
     isPending,
@@ -22,7 +32,22 @@ export function ProgramExercisesPage({
   })
 
   const errorMessage =
-    error instanceof Error ? error.message : error ? 'Could not load exercises.' : null
+    error instanceof Error
+      ? error.message
+      : error
+        ? 'Could not load exercises.'
+        : null
+
+  if (selectedExercise) {
+    return (
+      <ExerciseLogPage
+        exercise={selectedExercise}
+        programName={program.name}
+        dateKey={dateKey}
+        onBack={() => setSelectedExercise(null)}
+      />
+    )
+  }
 
   return (
     <main className="program-exercises">
@@ -30,13 +55,13 @@ export function ProgramExercisesPage({
 
       <header className="program-exercises__header">
         <button type="button" className="program-exercises__back" onClick={onBack}>
-          ← Workouts
+          ← Day
         </button>
         <p className="program-exercises__brand">Gym Assistant</p>
         <h1 className="program-exercises__title">{program.name}</h1>
         <p className="program-exercises__subtitle">
           {exercises.length > 0
-            ? `${exercises.length} exercises in this workout`
+            ? `${exercises.length} exercises · tap one to log sets`
             : 'Exercises for this workout'}
         </p>
       </header>
@@ -58,20 +83,23 @@ export function ProgramExercisesPage({
       ) : null}
 
       {!isPending && !errorMessage && exercises.length > 0 ? (
-        <ol className="program-exercises__list">
+        <div className="program-exercises__list" role="list">
           {exercises.map((exercise, index) => (
-            <li
+            <button
               key={exercise.id}
+              type="button"
+              role="listitem"
               className="program-exercises__item"
               style={{ animationDelay: `${0.04 + index * 0.04}s` }}
+              onClick={() => setSelectedExercise(exercise)}
             >
               <span className="program-exercises__num">
                 {String(exercise.sort_order).padStart(2, '0')}
               </span>
               <span className="program-exercises__name">{exercise.name}</span>
-            </li>
+            </button>
           ))}
-        </ol>
+        </div>
       ) : null}
     </main>
   )

@@ -4,14 +4,18 @@ import {
   getWorkoutPrograms,
   type WorkoutProgram,
 } from '../api/workoutPrograms'
-import { signOut } from '../api/auth'
+import { formatDisplayDate } from '../utils/date'
 import './WorkoutSelectPage.css'
 
 type WorkoutSelectPageProps = {
+  dateKey: string
+  onBack: () => void
   onSelectProgram: (program: WorkoutProgram) => void
 }
 
 export function WorkoutSelectPage({
+  dateKey,
+  onBack,
   onSelectProgram,
 }: WorkoutSelectPageProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -26,28 +30,24 @@ export function WorkoutSelectPage({
 
   const selected = programs.find((program) => program.id === selectedId) ?? null
   const errorMessage =
-    error instanceof Error ? error.message : error ? 'Could not load workouts.' : null
+    error instanceof Error
+      ? error.message
+      : error
+        ? 'Could not load workouts.'
+        : null
 
   return (
     <main className="workout-select">
       <div className="workout-select__atmosphere" aria-hidden="true" />
 
       <header className="workout-select__header">
-        <div className="workout-select__top">
-          <p className="workout-select__brand">Gym Assistant</p>
-          <button
-            type="button"
-            className="workout-select__sign-out"
-            onClick={async () => {
-              await signOut()
-            }}
-          >
-            Sign out
-          </button>
-        </div>
+        <button type="button" className="workout-select__back" onClick={onBack}>
+          ← {formatDisplayDate(dateKey)}
+        </button>
         <h1 className="workout-select__title">Choose your workout</h1>
         <p className="workout-select__subtitle">
-          Pick today’s session. Exercises for each workout come next.
+          This becomes the only workout for this day. After that you can only add
+          its exercises.
         </p>
       </header>
 

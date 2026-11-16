@@ -1,0 +1,183 @@
+.day {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 28rem;
+  min-height: 100svh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1.1rem, env(safe-area-inset-right))
+    max(1.25rem, env(safe-area-inset-bottom))
+    max(1.1rem, env(safe-area-inset-left));
+}
+
+.day__atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 50% at 85% -10%, #9fd4b0 0%, transparent 55%),
+    radial-gradient(ellipse 70% 45% at 0% 100%, #7eb896 0%, transparent 50%),
+    linear-gradient(165deg, #eef6f0 0%, #d9eadf 50%, #cfe3d6 100%);
+}
+
+.day__back {
+  min-height: 2.5rem;
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.day__title {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: clamp(1.55rem, 6.5vw, 2.1rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.day__subtitle,
+.day__status {
+  margin: 0.45rem 0 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.day__error {
+  margin: 1rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.45rem;
+  background: #fde8e6;
+  color: #8a2a22;
+  font-size: 0.92rem;
+}
+
+.day__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.1rem;
+}
+
+.day__card {
+  padding: 0.95rem 1rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, #fff 75%, transparent);
+}
+
+.day__card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+.day__program {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.day__exercise {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.day__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.4rem;
+}
+
+.day__edit,
+.day__delete {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.45rem;
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.day__edit {
+  border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+
+.day__delete {
+  border: 1.5px solid #c45b52;
+  color: #8a2a22;
+}
+
+.day__edit:disabled,
+.day__delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.day__edit:not(:disabled):active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.day__delete:not(:disabled):active {
+  background: #fde8e6;
+}
+
+.day__sets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.day__sets li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.day__sets li span:first-child {
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.day__add {
+  width: 100%;
+  min-height: var(--touch);
+  margin-top: 1.1rem;
+  padding: 0.9rem 1rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: var(--accent);
+  color: #f4fff8;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.day__add:active {
+  background: #14663f;
+}

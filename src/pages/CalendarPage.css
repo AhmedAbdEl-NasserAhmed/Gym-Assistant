@@ -1,0 +1,170 @@
+.calendar {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 28rem;
+  min-height: 100svh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1.1rem, env(safe-area-inset-right))
+    max(1.25rem, env(safe-area-inset-bottom))
+    max(1.1rem, env(safe-area-inset-left));
+}
+
+.calendar__atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 50% at 12% -10%, #9fd4b0 0%, transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 100%, #7eb896 0%, transparent 50%),
+    linear-gradient(165deg, #eef6f0 0%, #d9eadf 50%, #cfe3d6 100%);
+}
+
+.calendar__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.calendar__brand {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: clamp(1.35rem, 5.5vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.calendar__sign-out {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calendar__title {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.calendar__subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.calendar__month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0.85rem;
+}
+
+.calendar__month-nav h2 {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.calendar__month-nav button {
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 75%, transparent);
+  color: var(--accent);
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calendar__weekdays,
+.calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+}
+
+.calendar__weekdays {
+  margin-bottom: 0.35rem;
+}
+
+.calendar__weekdays span {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.calendar__cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1.5px solid transparent;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, #fff 55%, transparent);
+  color: var(--text-h);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calendar__cell.is-empty {
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+.calendar__cell.is-today {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.calendar__cell.has-workout {
+  background: color-mix(in srgb, var(--accent) 16%, #fff);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.calendar__cell.has-workout i {
+  position: absolute;
+  bottom: 0.35rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.calendar__cell:not(.is-empty):active {
+  transform: scale(0.96);
+}
+
+.calendar__status {
+  margin: 1rem 0 0;
+  font-size: 0.92rem;
+  color: var(--text);
+}
