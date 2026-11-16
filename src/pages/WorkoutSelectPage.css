@@ -1,0 +1,238 @@
+.workout-select {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28rem;
+  min-height: 100svh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(1.1rem, env(safe-area-inset-right))
+    max(1.1rem, env(safe-area-inset-bottom))
+    max(1.1rem, env(safe-area-inset-left));
+}
+
+.workout-select__atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 50% at 85% -10%, #9fd4b0 0%, transparent 55%),
+    radial-gradient(ellipse 70% 45% at 0% 100%, #7eb896 0%, transparent 50%),
+    linear-gradient(165deg, #eef6f0 0%, #d9eadf 50%, #cfe3d6 100%);
+}
+
+.workout-select__header {
+  margin-bottom: 1.25rem;
+}
+
+.workout-select__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.35rem;
+}
+
+.workout-select__brand {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: clamp(1.35rem, 5.5vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.workout-select__sign-out {
+  flex-shrink: 0;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.7rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.workout-select__sign-out:active {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.workout-select__title {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.workout-select__subtitle {
+  margin: 0.55rem 0 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.workout-select__status,
+.workout-select__error {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.workout-select__error {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.45rem;
+  background: #fde8e6;
+  color: #8a2a22;
+}
+
+.workout-select__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  flex: 1;
+}
+
+.workout-select__option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.95rem 1rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, #fff 70%, transparent);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: workout-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.workout-select__option:active {
+  transform: scale(0.985);
+}
+
+.workout-select__option.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.workout-select__index {
+  font-family: var(--heading);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--accent) 75%, var(--text-h));
+}
+
+.workout-select__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.workout-select__name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.workout-select__desc {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.workout-select__check {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.workout-select__option.is-selected .workout-select__check {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+.workout-select__footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: 1.1rem;
+  padding-top: 0.75rem;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, #d9eadf 88%, transparent) 35%,
+    #d9eadf 100%
+  );
+}
+
+.workout-select__continue {
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0.9rem 1rem;
+  border: none;
+  border-radius: 0.6rem;
+  background: var(--accent);
+  color: #f4fff8;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workout-select__continue:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.workout-select__continue:not(:disabled):active {
+  transform: scale(0.985);
+  background: #14663f;
+}
+
+@keyframes workout-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout-select__option {
+    animation: none;
+  }
+
+  .workout-select__option:active,
+  .workout-select__continue:not(:disabled):active {
+    transform: none;
+  }
+}

@@ -1,35 +1,40 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { getSession, onAuthStateChange, signOut } from './api/auth'
+import { getSession, onAuthStateChange } from './api/auth'
+import type { WorkoutProgram } from './api/workoutPrograms'
 import { LoginPage } from './pages/LoginPage'
+import { ProgramExercisesPage } from './pages/ProgramExercisesPage'
+import { WorkoutSelectPage } from './pages/WorkoutSelectPage'
 import './App.css'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
+  const [selectedProgram, setSelectedProgram] = useState<WorkoutProgram | null>(
+    null,
+  )
 
   useEffect(() => {
-    let mounted = true
-
-    getSession()
-      .then((currentSession) => {
-        if (!mounted) return
+    async function loadSession() {
+      try {
+        const currentSession = await getSession()
         setSession(currentSession)
-        setReady(true)
-      })
-      .catch(() => {
-        if (!mounted) return
+      } catch {
         setSession(null)
+      } finally {
         setReady(true)
-      })
+      }
+    }
+
+    void loadSession()
 
     const subscription = onAuthStateChange((nextSession) => {
       setSession(nextSession)
       setReady(true)
+      if (!nextSession) setSelectedProgram(null)
     })
 
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
   }, [])
@@ -42,20 +47,17 @@ function App() {
     return <LoginPage />
   }
 
+  if (!selectedProgram) {
+    return (
+      <WorkoutSelectPage onSelectProgram={setSelectedProgram} />
+    )
+  }
+
   return (
-    <main className="app">
-      <h1 className="brand">Gym Assistant</h1>
-      <p className="tagline">Signed in as {session.user.email}</p>
-      <button
-        type="button"
-        className="sign-out"
-        onClick={() => {
-          void signOut()
-        }}
-      >
-        Sign out
-      </button>
-    </main>
+    <ProgramExercisesPage
+      program={selectedProgram}
+      onBack={() => setSelectedProgram(null)}
+    />
   )
 }
 
