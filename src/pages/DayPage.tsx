@@ -9,6 +9,7 @@ import {
   getWorkoutPrograms,
   type WorkoutProgram,
 } from '../api/workoutPrograms'
+import { DayCardioForm } from '../components/DayCardioForm'
 import { formatDisplayDate } from '../utils/date'
 import { ExerciseLogPage } from './ExerciseLogPage'
 import './DayPage.css'
@@ -174,6 +175,13 @@ export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
             </article>
           ))}
         </div>
+      ) : null}
+
+      {dayProgram ? (
+        <DayCardioForm
+          dateKey={dateKey}
+          workoutProgramId={dayProgram.id}
+        />
       ) : null}
 
       <button

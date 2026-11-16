@@ -114,18 +114,31 @@ export async function getWorkoutDateKeys(
 ): Promise<string[]> {
   const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1)
   const end = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1)
+  const startKey = toDateKey(start)
+  const endKey = toDateKey(end)
 
-  const { data, error } = await supabase
-    .from('exercise_logs')
-    .select('performed_at')
-    .gte('performed_at', start.toISOString())
-    .lt('performed_at', end.toISOString())
+  const [exerciseResult, cardioResult] = await Promise.all([
+    supabase
+      .from('exercise_logs')
+      .select('performed_at')
+      .gte('performed_at', start.toISOString())
+      .lt('performed_at', end.toISOString()),
+    supabase
+      .from('workout_cardio_logs')
+      .select('date_key')
+      .gte('date_key', startKey)
+      .lt('date_key', endKey),
+  ])
 
-  if (error) throw error
+  if (exerciseResult.error) throw exerciseResult.error
+  if (cardioResult.error) throw cardioResult.error
 
   const keys = new Set<string>()
-  for (const row of data ?? []) {
+  for (const row of exerciseResult.data ?? []) {
     keys.add(toDateKey(new Date(row.performed_at)))
+  }
+  for (const row of cardioResult.data ?? []) {
+    keys.add(row.date_key)
   }
 
   return Array.from(keys)
