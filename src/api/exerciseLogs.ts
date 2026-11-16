@@ -232,11 +232,11 @@ export async function getExerciseLogsForDate(
   if (error) throw error
 
   return (data ?? []).map((row) => {
-    const exercise = row.program_exercises as {
+    const exercise = oneRelation<{
       name: string
       exercise_kind: ExerciseKind
-    } | null
-    const program = row.workout_programs as { name: string } | null
+    }>(row.program_exercises)
+    const program = oneRelation<{ name: string }>(row.workout_programs)
     const sets = ((row.exercise_log_sets as ExerciseLogSet[] | null) ?? [])
       .slice()
       .sort((a, b) => a.set_number - b.set_number)
@@ -254,4 +254,10 @@ export async function getExerciseLogsForDate(
       sets,
     }
   })
+}
+
+function oneRelation<T>(value: unknown): T | null {
+  if (value == null) return null
+  if (Array.isArray(value)) return (value[0] as T | undefined) ?? null
+  return value as T
 }
