@@ -124,10 +124,23 @@
   color: color-mix(in srgb, var(--accent) 75%, var(--text-h));
 }
 
+.program-exercises__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
 .program-exercises__name {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-h);
+}
+
+.program-exercises__tag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 @keyframes program-rise {

@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase'
+import type { ExerciseKind } from './programExercises'
 import { dayRangeIso, toDateKey } from '../utils/date'
 
 export type ExerciseSetInput = {
@@ -7,12 +8,24 @@ export type ExerciseSetInput = {
   weightKg: number | null
 }
 
-export type SaveExerciseLogInput = {
+export type SaveStrengthLogInput = {
+  kind: 'strength'
   programExerciseId: string
   workoutProgramId: string
   dateKey: string
   sets: ExerciseSetInput[]
 }
+
+export type SaveCardioLogInput = {
+  kind: 'cardio'
+  programExerciseId: string
+  workoutProgramId: string
+  dateKey: string
+  cardioType: string
+  durationMinutes: number
+}
+
+export type SaveExerciseLogInput = SaveStrengthLogInput | SaveCardioLogInput
 
 export type ExerciseLogSet = {
   id: string
@@ -27,32 +40,52 @@ export type DayExerciseLog = {
   program_exercise_id: string
   workout_program_id: string
   exercise_name: string
+  exercise_kind: ExerciseKind
   program_name: string
+  cardio_type: string | null
+  duration_minutes: number | null
   sets: ExerciseLogSet[]
 }
 
-export async function saveExerciseLog({
-  programExerciseId,
-  workoutProgramId,
-  dateKey,
-  sets,
-}: SaveExerciseLogInput) {
+async function requireUser() {
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser()
 
   if (userError) throw userError
-  if (!user) throw new Error('You must be signed in to save sets.')
+  if (!user) throw new Error('You must be signed in to save.')
+  return user
+}
 
-  const performedAt = new Date(`${dateKey}T12:00:00`).toISOString()
+export async function saveExerciseLog(input: SaveExerciseLogInput) {
+  const user = await requireUser()
+  const performedAt = new Date(`${input.dateKey}T12:00:00`).toISOString()
+
+  if (input.kind === 'cardio') {
+    const { data: log, error } = await supabase
+      .from('exercise_logs')
+      .insert({
+        user_id: user.id,
+        program_exercise_id: input.programExerciseId,
+        workout_program_id: input.workoutProgramId,
+        performed_at: performedAt,
+        cardio_type: input.cardioType.trim(),
+        duration_minutes: input.durationMinutes,
+      })
+      .select('id')
+      .single()
+
+    if (error) throw error
+    return log
+  }
 
   const { data: log, error: logError } = await supabase
     .from('exercise_logs')
     .insert({
       user_id: user.id,
-      program_exercise_id: programExerciseId,
-      workout_program_id: workoutProgramId,
+      program_exercise_id: input.programExerciseId,
+      workout_program_id: input.workoutProgramId,
       performed_at: performedAt,
     })
     .select('id')
@@ -61,7 +94,7 @@ export async function saveExerciseLog({
   if (logError) throw logError
 
   const { error: setsError } = await supabase.from('exercise_log_sets').insert(
-    sets.map((set) => ({
+    input.sets.map((set) => ({
       exercise_log_id: log.id,
       set_number: set.setNumber,
       reps: set.reps,
@@ -86,10 +119,48 @@ export async function deleteExerciseLog(logId: string) {
   if (error) throw error
 }
 
+export async function deleteExerciseLogsForDate(dateKey: string) {
+  const { start, end } = dayRangeIso(dateKey)
+  const { error } = await supabase
+    .from('exercise_logs')
+    .delete()
+    .gte('performed_at', start)
+    .lt('performed_at', end)
+
+  if (error) throw error
+}
+
 export async function updateExerciseLog(
   logId: string,
-  sets: ExerciseSetInput[],
+  input:
+    | { kind: 'strength'; sets: ExerciseSetInput[] }
+    | { kind: 'cardio'; cardioType: string; durationMinutes: number },
 ) {
+  if (input.kind === 'cardio') {
+    const { error } = await supabase
+      .from('exercise_logs')
+      .update({
+        cardio_type: input.cardioType.trim(),
+        duration_minutes: input.durationMinutes,
+      })
+      .eq('id', logId)
+
+    if (error) throw error
+
+    await supabase.from('exercise_log_sets').delete().eq('exercise_log_id', logId)
+    return
+  }
+
+  const { error: clearCardioError } = await supabase
+    .from('exercise_logs')
+    .update({
+      cardio_type: null,
+      duration_minutes: null,
+    })
+    .eq('id', logId)
+
+  if (clearCardioError) throw clearCardioError
+
   const { error: deleteError } = await supabase
     .from('exercise_log_sets')
     .delete()
@@ -98,7 +169,7 @@ export async function updateExerciseLog(
   if (deleteError) throw deleteError
 
   const { error: insertError } = await supabase.from('exercise_log_sets').insert(
-    sets.map((set) => ({
+    input.sets.map((set) => ({
       exercise_log_id: logId,
       set_number: set.setNumber,
       reps: set.reps,
@@ -109,36 +180,21 @@ export async function updateExerciseLog(
   if (insertError) throw insertError
 }
 
-export async function getWorkoutDateKeys(
-  monthDate: Date,
-): Promise<string[]> {
+export async function getWorkoutDateKeys(monthDate: Date): Promise<string[]> {
   const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1)
   const end = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1)
-  const startKey = toDateKey(start)
-  const endKey = toDateKey(end)
 
-  const [exerciseResult, cardioResult] = await Promise.all([
-    supabase
-      .from('exercise_logs')
-      .select('performed_at')
-      .gte('performed_at', start.toISOString())
-      .lt('performed_at', end.toISOString()),
-    supabase
-      .from('workout_cardio_logs')
-      .select('date_key')
-      .gte('date_key', startKey)
-      .lt('date_key', endKey),
-  ])
+  const { data, error } = await supabase
+    .from('exercise_logs')
+    .select('performed_at')
+    .gte('performed_at', start.toISOString())
+    .lt('performed_at', end.toISOString())
 
-  if (exerciseResult.error) throw exerciseResult.error
-  if (cardioResult.error) throw cardioResult.error
+  if (error) throw error
 
   const keys = new Set<string>()
-  for (const row of exerciseResult.data ?? []) {
+  for (const row of data ?? []) {
     keys.add(toDateKey(new Date(row.performed_at)))
-  }
-  for (const row of cardioResult.data ?? []) {
-    keys.add(row.date_key)
   }
 
   return Array.from(keys)
@@ -157,7 +213,9 @@ export async function getExerciseLogsForDate(
       performed_at,
       program_exercise_id,
       workout_program_id,
-      program_exercises ( name ),
+      cardio_type,
+      duration_minutes,
+      program_exercises ( name, exercise_kind ),
       workout_programs ( name ),
       exercise_log_sets (
         id,
@@ -174,11 +232,14 @@ export async function getExerciseLogsForDate(
   if (error) throw error
 
   return (data ?? []).map((row) => {
-    const exercise = row.program_exercises as { name: string } | null
+    const exercise = row.program_exercises as {
+      name: string
+      exercise_kind: ExerciseKind
+    } | null
     const program = row.workout_programs as { name: string } | null
-    const sets = (
-      (row.exercise_log_sets as ExerciseLogSet[] | null) ?? []
-    ).slice().sort((a, b) => a.set_number - b.set_number)
+    const sets = ((row.exercise_log_sets as ExerciseLogSet[] | null) ?? [])
+      .slice()
+      .sort((a, b) => a.set_number - b.set_number)
 
     return {
       id: row.id,
@@ -186,7 +247,10 @@ export async function getExerciseLogsForDate(
       program_exercise_id: row.program_exercise_id,
       workout_program_id: row.workout_program_id,
       exercise_name: exercise?.name ?? 'Exercise',
+      exercise_kind: exercise?.exercise_kind ?? 'strength',
       program_name: program?.name ?? 'Workout',
+      cardio_type: row.cardio_type,
+      duration_minutes: row.duration_minutes,
       sets,
     }
   })

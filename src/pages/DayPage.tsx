@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   deleteExerciseLog,
+  deleteExerciseLogsForDate,
   getExerciseLogsForDate,
   type DayExerciseLog,
 } from '../api/exerciseLogs'
@@ -9,7 +10,7 @@ import {
   getWorkoutPrograms,
   type WorkoutProgram,
 } from '../api/workoutPrograms'
-import { DayCardioForm } from '../components/DayCardioForm'
+import { ConfirmModal } from '../components/ConfirmModal'
 import { formatDisplayDate } from '../utils/date'
 import { ExerciseLogPage } from './ExerciseLogPage'
 import './DayPage.css'
@@ -18,13 +19,25 @@ type DayPageProps = {
   dateKey: string
   onBack: () => void
   onAddWorkout: (program?: WorkoutProgram) => void
+  onChangeWorkout: () => void
 }
 
-export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
+type PendingAction =
+  | { type: 'delete-exercise'; logId: string; name: string }
+  | { type: 'change-workout' }
+
+export function DayPage({
+  dateKey,
+  onBack,
+  onAddWorkout,
+  onChangeWorkout,
+}: DayPageProps) {
   const queryClient = useQueryClient()
   const [editingLog, setEditingLog] = useState<DayExerciseLog | null>(null)
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const {
     data: logs = [],
@@ -61,23 +74,41 @@ export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
         ? 'Could not load this day.'
         : null
 
-  async function handleDelete(logId: string, exerciseName: string) {
-    const confirmed = window.confirm(`Delete ${exerciseName} from this day?`)
-    if (!confirmed) return
+  async function confirmPendingAction() {
+    if (!pendingAction) return
 
-    setDeleteError(null)
-    setDeletingId(logId)
+    setActionError(null)
 
+    if (pendingAction.type === 'delete-exercise') {
+      setDeletingId(pendingAction.logId)
+      try {
+        await deleteExerciseLog(pendingAction.logId)
+        await queryClient.invalidateQueries({ queryKey: ['day-logs', dateKey] })
+        await queryClient.invalidateQueries({ queryKey: ['workout-dates'] })
+        setPendingAction(null)
+      } catch (err) {
+        setActionError(
+          err instanceof Error ? err.message : 'Could not delete exercise.',
+        )
+      } finally {
+        setDeletingId(null)
+      }
+      return
+    }
+
+    setBusy(true)
     try {
-      await deleteExerciseLog(logId)
+      await deleteExerciseLogsForDate(dateKey)
       await queryClient.invalidateQueries({ queryKey: ['day-logs', dateKey] })
       await queryClient.invalidateQueries({ queryKey: ['workout-dates'] })
+      setPendingAction(null)
+      onChangeWorkout()
     } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : 'Could not delete exercise.',
+      setActionError(
+        err instanceof Error ? err.message : 'Could not change workout.',
       )
     } finally {
-      setDeletingId(null)
+      setBusy(false)
     }
   }
 
@@ -92,11 +123,18 @@ export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
           workout_program_id: editingLog.workout_program_id,
           name: editingLog.exercise_name,
           sort_order: 0,
+          exercise_kind: editingLog.exercise_kind,
         }}
         initialSets={editingLog.sets.map((set) => ({
           reps: set.reps == null ? '' : String(set.reps),
           weight: set.weight_kg == null ? '' : String(set.weight_kg),
         }))}
+        initialCardioType={editingLog.cardio_type ?? ''}
+        initialDurationMinutes={
+          editingLog.duration_minutes == null
+            ? ''
+            : String(editingLog.duration_minutes)
+        }
         onBack={() => setEditingLog(null)}
       />
     )
@@ -126,9 +164,9 @@ export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
         </p>
       ) : null}
 
-      {deleteError ? (
+      {actionError ? (
         <p className="day__error" role="alert">
-          {deleteError}
+          {actionError}
         </p>
       ) : null}
 
@@ -145,7 +183,7 @@ export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
                   <button
                     type="button"
                     className="day__edit"
-                    disabled={deletingId === log.id}
+                    disabled={deletingId === log.id || busy}
                     onClick={() => setEditingLog(log)}
                   >
                     Edit
@@ -153,44 +191,91 @@ export function DayPage({ dateKey, onBack, onAddWorkout }: DayPageProps) {
                   <button
                     type="button"
                     className="day__delete"
-                    disabled={deletingId === log.id}
-                    onClick={() => {
-                      void handleDelete(log.id, log.exercise_name)
-                    }}
+                    disabled={deletingId === log.id || busy}
+                    onClick={() =>
+                      setPendingAction({
+                        type: 'delete-exercise',
+                        logId: log.id,
+                        name: log.exercise_name,
+                      })
+                    }
                   >
                     {deletingId === log.id ? 'Deleting…' : 'Delete'}
                   </button>
                 </div>
               </div>
-              <ul className="day__sets">
-                {log.sets.map((set) => (
-                  <li key={set.id}>
-                    <span>Set {set.set_number}</span>
-                    <span>
-                      {set.reps ?? '—'} reps · {set.weight_kg ?? '—'} kg
-                    </span>
-                  </li>
-                ))}
-              </ul>
+
+              {log.exercise_kind === 'cardio' ? (
+                <p className="day__cardio-summary">
+                  {log.cardio_type || 'Cardio'} · {log.duration_minutes ?? '—'}{' '}
+                  min
+                </p>
+              ) : (
+                <ul className="day__sets">
+                  {log.sets.map((set) => (
+                    <li key={set.id}>
+                      <span>Set {set.set_number}</span>
+                      <span>
+                        {set.reps ?? '—'} reps · {set.weight_kg ?? '—'} kg
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </article>
           ))}
         </div>
       ) : null}
 
-      {dayProgram ? (
-        <DayCardioForm
-          dateKey={dateKey}
-          workoutProgramId={dayProgram.id}
+      <div className="day__footer-actions">
+        <button
+          type="button"
+          className="day__add"
+          disabled={busy}
+          onClick={() => onAddWorkout(dayProgram ?? undefined)}
+        >
+          {dayProgram ? `Add ${dayProgram.name} exercise` : 'Choose workout'}
+        </button>
+
+        {dayProgram ? (
+          <button
+            type="button"
+            className="day__change"
+            disabled={busy}
+            onClick={() => setPendingAction({ type: 'change-workout' })}
+          >
+            {busy ? 'Changing…' : 'Change main workout'}
+          </button>
+        ) : null}
+      </div>
+
+      {pendingAction?.type === 'delete-exercise' ? (
+        <ConfirmModal
+          danger
+          busy={deletingId === pendingAction.logId}
+          title="Delete exercise?"
+          message={`Remove ${pendingAction.name} from this day? This cannot be undone.`}
+          confirmLabel="Delete"
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() => {
+            void confirmPendingAction()
+          }}
         />
       ) : null}
 
-      <button
-        type="button"
-        className="day__add"
-        onClick={() => onAddWorkout(dayProgram ?? undefined)}
-      >
-        {dayProgram ? `Add ${dayProgram.name} exercise` : 'Choose workout'}
-      </button>
+      {pendingAction?.type === 'change-workout' ? (
+        <ConfirmModal
+          danger
+          busy={busy}
+          title="Change main workout?"
+          message="All logged exercises for this day will be deleted so you can choose a different workout."
+          confirmLabel="Change workout"
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() => {
+            void confirmPendingAction()
+          }}
+        />
+      ) : null}
     </main>
   )
 }

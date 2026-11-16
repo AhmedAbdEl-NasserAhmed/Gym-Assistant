@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  saveExerciseLog,
-  updateExerciseLog,
-} from '../api/exerciseLogs'
+import { saveExerciseLog, updateExerciseLog } from '../api/exerciseLogs'
 import type { ProgramExercise } from '../api/programExercises'
 import { formatDisplayDate } from '../utils/date'
 import './ExerciseLogPage.css'
@@ -18,8 +15,11 @@ type ExerciseLogPageProps = {
   programName: string
   dateKey: string
   onBack: () => void
+  onSaved?: () => void
   logId?: string
   initialSets?: SetRow[]
+  initialCardioType?: string
+  initialDurationMinutes?: string
 }
 
 const emptySet = (): SetRow => ({ reps: '', weight: '' })
@@ -35,33 +35,37 @@ export function ExerciseLogPage({
   programName,
   dateKey,
   onBack,
+  onSaved,
   logId,
   initialSets,
+  initialCardioType = '',
+  initialDurationMinutes = '',
 }: ExerciseLogPageProps) {
   const queryClient = useQueryClient()
   const isEditing = Boolean(logId)
+  const isCardio = exercise.exercise_kind === 'cardio'
+
   const [sets, setSets] = useState<SetRow[]>(
     initialSets && initialSets.length > 0
       ? initialSets
       : [emptySet(), emptySet(), emptySet()],
   )
+  const [cardioType, setCardioType] = useState(initialCardioType)
+  const [duration, setDuration] = useState(initialDurationMinutes)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
 
   function setCount(count: number) {
     const next = Math.max(1, Math.min(12, count))
     setSets((current) =>
       Array.from({ length: next }, (_, i) => current[i] ?? emptySet()),
     )
-    setSaved(false)
   }
 
   function updateSet(index: number, key: keyof SetRow, value: string) {
     setSets((current) =>
       current.map((row, i) => (i === index ? { ...row, [key]: value } : row)),
     )
-    setSaved(false)
   }
 
   async function handleSubmit() {
@@ -69,36 +73,62 @@ export function ExerciseLogPage({
     setSaving(true)
 
     try {
-      const hasValue = sets.some(
-        (set) => set.reps.trim() !== '' || set.weight.trim() !== '',
-      )
-      if (!hasValue) {
-        throw new Error('Enter reps or weight for at least one set.')
-      }
+      if (isCardio) {
+        const type = cardioType.trim()
+        const minutes = Number(duration)
+        if (!type) throw new Error('Enter a cardio type.')
+        if (!Number.isFinite(minutes) || minutes <= 0) {
+          throw new Error('Enter a valid time in minutes.')
+        }
 
-      const payload = sets.map((set, index) => ({
-        setNumber: index + 1,
-        reps: toNumber(set.reps),
-        weightKg: toNumber(set.weight),
-      }))
-
-      if (logId) {
-        await updateExerciseLog(logId, payload)
+        if (logId) {
+          await updateExerciseLog(logId, {
+            kind: 'cardio',
+            cardioType: type,
+            durationMinutes: minutes,
+          })
+        } else {
+          await saveExerciseLog({
+            kind: 'cardio',
+            programExerciseId: exercise.id,
+            workoutProgramId: exercise.workout_program_id,
+            dateKey,
+            cardioType: type,
+            durationMinutes: minutes,
+          })
+        }
       } else {
-        await saveExerciseLog({
-          programExerciseId: exercise.id,
-          workoutProgramId: exercise.workout_program_id,
-          dateKey,
-          sets: payload,
-        })
+        const hasValue = sets.some(
+          (set) => set.reps.trim() !== '' || set.weight.trim() !== '',
+        )
+        if (!hasValue) {
+          throw new Error('Enter reps or weight for at least one set.')
+        }
+
+        const payload = sets.map((set, index) => ({
+          setNumber: index + 1,
+          reps: toNumber(set.reps),
+          weightKg: toNumber(set.weight),
+        }))
+
+        if (logId) {
+          await updateExerciseLog(logId, { kind: 'strength', sets: payload })
+        } else {
+          await saveExerciseLog({
+            kind: 'strength',
+            programExerciseId: exercise.id,
+            workoutProgramId: exercise.workout_program_id,
+            dateKey,
+            sets: payload,
+          })
+        }
       }
 
       await queryClient.invalidateQueries({ queryKey: ['day-logs', dateKey] })
       await queryClient.invalidateQueries({ queryKey: ['workout-dates'] })
-      setSaved(true)
+      ;(onSaved ?? onBack)()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save sets.')
-    } finally {
+      setError(err instanceof Error ? err.message : 'Could not save.')
       setSaving(false)
     }
   }
@@ -115,73 +145,97 @@ export function ExerciseLogPage({
         <p className="exercise-log__date">{formatDisplayDate(dateKey)}</p>
       </header>
 
-      <div className="exercise-log__count">
-        <span>Sets</span>
-        <div className="exercise-log__stepper">
-          <button
-            type="button"
-            aria-label="Fewer sets"
-            disabled={sets.length <= 1 || saving}
-            onClick={() => setCount(sets.length - 1)}
-          >
-            −
-          </button>
-          <strong>{sets.length}</strong>
-          <button
-            type="button"
-            aria-label="More sets"
-            disabled={sets.length >= 12 || saving}
-            onClick={() => setCount(sets.length + 1)}
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      <div className="exercise-log__sets">
-        <div className="exercise-log__labels" aria-hidden="true">
-          <span>Set</span>
-          <span>Reps</span>
-          <span>Kg</span>
-        </div>
-
-        {sets.map((set, index) => (
-          <div key={index} className="exercise-log__row">
-            <span className="exercise-log__num">{index + 1}</span>
+      {isCardio ? (
+        <div className="exercise-log__cardio">
+          <label className="exercise-log__field">
+            <span>Type</span>
             <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              placeholder="0"
-              aria-label={`Set ${index + 1} reps`}
-              value={set.reps}
+              type="text"
+              placeholder="Treadmill, bike…"
+              value={cardioType}
               disabled={saving}
-              onChange={(e) => updateSet(index, 'reps', e.target.value)}
+              onChange={(e) => setCardioType(e.target.value)}
             />
+          </label>
+          <label className="exercise-log__field">
+            <span>Time (min)</span>
             <input
               type="number"
               inputMode="decimal"
               min={0}
               step="0.5"
-              placeholder="0"
-              aria-label={`Set ${index + 1} weight`}
-              value={set.weight}
+              placeholder="20"
+              value={duration}
               disabled={saving}
-              onChange={(e) => updateSet(index, 'weight', e.target.value)}
+              onChange={(e) => setDuration(e.target.value)}
             />
+          </label>
+        </div>
+      ) : (
+        <>
+          <div className="exercise-log__count">
+            <span>Sets</span>
+            <div className="exercise-log__stepper">
+              <button
+                type="button"
+                aria-label="Fewer sets"
+                disabled={sets.length <= 1 || saving}
+                onClick={() => setCount(sets.length - 1)}
+              >
+                −
+              </button>
+              <strong>{sets.length}</strong>
+              <button
+                type="button"
+                aria-label="More sets"
+                disabled={sets.length >= 12 || saving}
+                onClick={() => setCount(sets.length + 1)}
+              >
+                +
+              </button>
+            </div>
           </div>
-        ))}
-      </div>
+
+          <div className="exercise-log__sets">
+            <div className="exercise-log__labels" aria-hidden="true">
+              <span>Set</span>
+              <span>Reps</span>
+              <span>Kg</span>
+            </div>
+
+            {sets.map((set, index) => (
+              <div key={index} className="exercise-log__row">
+                <span className="exercise-log__num">{index + 1}</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  placeholder="0"
+                  aria-label={`Set ${index + 1} reps`}
+                  value={set.reps}
+                  disabled={saving}
+                  onChange={(e) => updateSet(index, 'reps', e.target.value)}
+                />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.5"
+                  placeholder="0"
+                  aria-label={`Set ${index + 1} weight`}
+                  value={set.weight}
+                  disabled={saving}
+                  onChange={(e) => updateSet(index, 'weight', e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {error ? (
         <p className="exercise-log__error" role="alert">
           {error}
-        </p>
-      ) : null}
-
-      {saved ? (
-        <p className="exercise-log__success" role="status">
-          {isEditing ? 'Changes saved.' : `Saved for ${formatDisplayDate(dateKey)}.`}
         </p>
       ) : null}
 
@@ -193,7 +247,15 @@ export function ExerciseLogPage({
           void handleSubmit()
         }}
       >
-        {saving ? 'Saving…' : isEditing ? 'Update sets' : 'Save sets'}
+        {saving
+          ? 'Saving…'
+          : isEditing
+            ? isCardio
+              ? 'Update cardio'
+              : 'Update sets'
+            : isCardio
+              ? 'Save cardio'
+              : 'Save sets'}
       </button>
     </main>
   )

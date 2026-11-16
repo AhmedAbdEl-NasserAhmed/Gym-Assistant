@@ -27,7 +27,7 @@ export function ProgramExercisesPage({
     isPending,
     error,
   } = useQuery({
-    queryKey: ['program-exercises', program.id],
+    queryKey: ['program-exercises', program.id, 'with-kind'],
     queryFn: () => getProgramExercises(program.id),
   })
 
@@ -45,6 +45,7 @@ export function ProgramExercisesPage({
         programName={program.name}
         dateKey={dateKey}
         onBack={() => setSelectedExercise(null)}
+        onSaved={onBack}
       />
     )
   }
@@ -96,7 +97,12 @@ export function ProgramExercisesPage({
               <span className="program-exercises__num">
                 {String(exercise.sort_order).padStart(2, '0')}
               </span>
-              <span className="program-exercises__name">{exercise.name}</span>
+              <span className="program-exercises__copy">
+                <span className="program-exercises__name">{exercise.name}</span>
+                {exercise.exercise_kind === 'cardio' ? (
+                  <span className="program-exercises__tag">Type + time</span>
+                ) : null}
+              </span>
             </button>
           ))}
         </div>

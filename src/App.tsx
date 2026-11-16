@@ -84,6 +84,10 @@ function App() {
           setLogging(true)
           setSelectedProgram(program ?? null)
         }}
+        onChangeWorkout={() => {
+          setLogging(true)
+          setSelectedProgram(null)
+        }}
       />
     )
   }
