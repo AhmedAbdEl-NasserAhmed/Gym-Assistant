@@ -19,6 +19,15 @@ export function formatDisplayDate(dateKey: string): string {
   })
 }
 
+export function formatShortDate(dateKey: string): string {
+  return parseDateKey(dateKey).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
 export function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { getLastWorkoutDateByProgram } from '../api/exerciseLogs'
 import {
   getWorkoutPrograms,
   type WorkoutProgram,
 } from '../api/workoutPrograms'
-import { formatDisplayDate } from '../utils/date'
+import { formatDisplayDate, formatShortDate } from '../utils/date'
 import './WorkoutSelectPage.css'
 
 type WorkoutSelectPageProps = {
@@ -26,6 +27,10 @@ export function WorkoutSelectPage({
   } = useQuery({
     queryKey: ['workout-programs'],
     queryFn: getWorkoutPrograms,
+  })
+  const { data: lastByProgram = {} } = useQuery({
+    queryKey: ['last-workout-dates'],
+    queryFn: getLastWorkoutDateByProgram,
   })
 
   const selected = programs.find((program) => program.id === selectedId) ?? null
@@ -69,6 +74,7 @@ export function WorkoutSelectPage({
         >
           {programs.map((program, index) => {
             const isSelected = program.id === selectedId
+            const lastDate = lastByProgram[program.id]
             return (
               <button
                 key={program.id}
@@ -89,6 +95,11 @@ export function WorkoutSelectPage({
                       {program.description}
                     </span>
                   ) : null}
+                  <span className="workout-select__last">
+                    {lastDate
+                      ? `Last: ${formatShortDate(lastDate)}`
+                      : 'Not done yet'}
+                  </span>
                 </span>
                 <span className="workout-select__check" aria-hidden="true" />
               </button>

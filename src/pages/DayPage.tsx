@@ -85,6 +85,7 @@ export function DayPage({
         await deleteExerciseLog(pendingAction.logId)
         await queryClient.invalidateQueries({ queryKey: ['day-logs', dateKey] })
         await queryClient.invalidateQueries({ queryKey: ['workout-dates'] })
+        await queryClient.invalidateQueries({ queryKey: ['last-workout-dates'] })
         setPendingAction(null)
       } catch (err) {
         setActionError(
@@ -101,6 +102,7 @@ export function DayPage({
       await deleteExerciseLogsForDate(dateKey)
       await queryClient.invalidateQueries({ queryKey: ['day-logs', dateKey] })
       await queryClient.invalidateQueries({ queryKey: ['workout-dates'] })
+      await queryClient.invalidateQueries({ queryKey: ['last-workout-dates'] })
       setPendingAction(null)
       onChangeWorkout()
     } catch (err) {

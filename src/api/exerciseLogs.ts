@@ -200,6 +200,27 @@ export async function getWorkoutDateKeys(monthDate: Date): Promise<string[]> {
   return Array.from(keys)
 }
 
+/** Most recent logged date key per workout program for the signed-in user. */
+export async function getLastWorkoutDateByProgram(): Promise<
+  Record<string, string>
+> {
+  const { data, error } = await supabase
+    .from('exercise_logs')
+    .select('workout_program_id, performed_at')
+    .order('performed_at', { ascending: false })
+
+  if (error) throw error
+
+  const lastByProgram: Record<string, string> = {}
+  for (const row of data ?? []) {
+    const programId = row.workout_program_id as string
+    if (lastByProgram[programId]) continue
+    lastByProgram[programId] = toDateKey(new Date(row.performed_at))
+  }
+
+  return lastByProgram
+}
+
 export async function getExerciseLogsForDate(
   dateKey: string,
 ): Promise<DayExerciseLog[]> {

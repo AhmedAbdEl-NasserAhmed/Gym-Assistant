@@ -126,6 +126,7 @@ export function ExerciseLogPage({
 
       await queryClient.invalidateQueries({ queryKey: ['day-logs', dateKey] })
       await queryClient.invalidateQueries({ queryKey: ['workout-dates'] })
+      await queryClient.invalidateQueries({ queryKey: ['last-workout-dates'] })
       ;(onSaved ?? onBack)()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save.')
