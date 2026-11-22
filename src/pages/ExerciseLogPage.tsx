@@ -20,6 +20,8 @@ type ExerciseLogPageProps = {
   initialSets?: SetRow[]
   initialCardioType?: string
   initialDurationMinutes?: string
+  initialRir?: string
+  initialNote?: string
 }
 
 const emptySet = (): SetRow => ({ reps: '', weight: '' })
@@ -28,6 +30,15 @@ function toNumber(value: string): number | null {
   if (value.trim() === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseRir(value: string): number | null {
+  if (value.trim() === '') return null
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 10) {
+    throw new Error('RIR must be a whole number from 0 to 10.')
+  }
+  return parsed
 }
 
 export function ExerciseLogPage({
@@ -40,6 +51,8 @@ export function ExerciseLogPage({
   initialSets,
   initialCardioType = '',
   initialDurationMinutes = '',
+  initialRir = '',
+  initialNote = '',
 }: ExerciseLogPageProps) {
   const queryClient = useQueryClient()
   const isEditing = Boolean(logId)
@@ -52,6 +65,8 @@ export function ExerciseLogPage({
   )
   const [cardioType, setCardioType] = useState(initialCardioType)
   const [duration, setDuration] = useState(initialDurationMinutes)
+  const [rir, setRir] = useState(initialRir)
+  const [note, setNote] = useState(initialNote)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -73,6 +88,11 @@ export function ExerciseLogPage({
     setSaving(true)
 
     try {
+      const extras = {
+        rir: parseRir(rir),
+        note: note.trim() === '' ? null : note.trim(),
+      }
+
       if (isCardio) {
         const type = cardioType.trim()
         const minutes = Number(duration)
@@ -86,6 +106,7 @@ export function ExerciseLogPage({
             kind: 'cardio',
             cardioType: type,
             durationMinutes: minutes,
+            ...extras,
           })
         } else {
           await saveExerciseLog({
@@ -95,6 +116,7 @@ export function ExerciseLogPage({
             dateKey,
             cardioType: type,
             durationMinutes: minutes,
+            ...extras,
           })
         }
       } else {
@@ -112,7 +134,11 @@ export function ExerciseLogPage({
         }))
 
         if (logId) {
-          await updateExerciseLog(logId, { kind: 'strength', sets: payload })
+          await updateExerciseLog(logId, {
+            kind: 'strength',
+            sets: payload,
+            ...extras,
+          })
         } else {
           await saveExerciseLog({
             kind: 'strength',
@@ -120,6 +146,7 @@ export function ExerciseLogPage({
             workoutProgramId: exercise.workout_program_id,
             dateKey,
             sets: payload,
+            ...extras,
           })
         }
       }
@@ -233,6 +260,33 @@ export function ExerciseLogPage({
           </div>
         </>
       )}
+
+      <div className="exercise-log__meta">
+        <label className="exercise-log__field">
+          <span>RIR</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={10}
+            step={1}
+            placeholder="0–10"
+            value={rir}
+            disabled={saving}
+            onChange={(e) => setRir(e.target.value)}
+          />
+        </label>
+        <label className="exercise-log__field">
+          <span>Note</span>
+          <textarea
+            rows={3}
+            placeholder="Form, pain, pump…"
+            value={note}
+            disabled={saving}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+      </div>
 
       {error ? (
         <p className="exercise-log__error" role="alert">

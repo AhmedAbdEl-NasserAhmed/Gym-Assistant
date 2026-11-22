@@ -137,6 +137,8 @@ export function DayPage({
             ? ''
             : String(editingLog.duration_minutes)
         }
+        initialRir={editingLog.rir == null ? '' : String(editingLog.rir)}
+        initialNote={editingLog.note ?? ''}
         onBack={() => setEditingLog(null)}
       />
     )
@@ -224,6 +226,15 @@ export function DayPage({
                   ))}
                 </ul>
               )}
+
+              {log.rir != null || log.note ? (
+                <div className="day__meta">
+                  {log.rir != null ? (
+                    <p className="day__rir">RIR {log.rir}</p>
+                  ) : null}
+                  {log.note ? <p className="day__note">{log.note}</p> : null}
+                </div>
+              ) : null}
             </article>
           ))}
         </div>

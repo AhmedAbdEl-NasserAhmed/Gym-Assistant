@@ -8,13 +8,18 @@ export type ExerciseSetInput = {
   weightKg: number | null
 }
 
+type LogExtras = {
+  rir: number | null
+  note: string | null
+}
+
 export type SaveStrengthLogInput = {
   kind: 'strength'
   programExerciseId: string
   workoutProgramId: string
   dateKey: string
   sets: ExerciseSetInput[]
-}
+} & LogExtras
 
 export type SaveCardioLogInput = {
   kind: 'cardio'
@@ -23,7 +28,7 @@ export type SaveCardioLogInput = {
   dateKey: string
   cardioType: string
   durationMinutes: number
-}
+} & LogExtras
 
 export type SaveExerciseLogInput = SaveStrengthLogInput | SaveCardioLogInput
 
@@ -44,6 +49,8 @@ export type DayExerciseLog = {
   program_name: string
   cardio_type: string | null
   duration_minutes: number | null
+  rir: number | null
+  note: string | null
   sets: ExerciseLogSet[]
 }
 
@@ -58,9 +65,18 @@ async function requireUser() {
   return user
 }
 
+function normalizeNote(note: string | null | undefined): string | null {
+  const trimmed = note?.trim() ?? ''
+  return trimmed === '' ? null : trimmed
+}
+
 export async function saveExerciseLog(input: SaveExerciseLogInput) {
   const user = await requireUser()
   const performedAt = new Date(`${input.dateKey}T12:00:00`).toISOString()
+  const extras = {
+    rir: input.rir,
+    note: normalizeNote(input.note),
+  }
 
   if (input.kind === 'cardio') {
     const { data: log, error } = await supabase
@@ -72,6 +88,7 @@ export async function saveExerciseLog(input: SaveExerciseLogInput) {
         performed_at: performedAt,
         cardio_type: input.cardioType.trim(),
         duration_minutes: input.durationMinutes,
+        ...extras,
       })
       .select('id')
       .single()
@@ -87,6 +104,7 @@ export async function saveExerciseLog(input: SaveExerciseLogInput) {
       program_exercise_id: input.programExerciseId,
       workout_program_id: input.workoutProgramId,
       performed_at: performedAt,
+      ...extras,
     })
     .select('id')
     .single()
@@ -133,15 +151,25 @@ export async function deleteExerciseLogsForDate(dateKey: string) {
 export async function updateExerciseLog(
   logId: string,
   input:
-    | { kind: 'strength'; sets: ExerciseSetInput[] }
-    | { kind: 'cardio'; cardioType: string; durationMinutes: number },
+    | ({ kind: 'strength'; sets: ExerciseSetInput[] } & LogExtras)
+    | ({
+        kind: 'cardio'
+        cardioType: string
+        durationMinutes: number
+      } & LogExtras),
 ) {
+  const extras = {
+    rir: input.rir,
+    note: normalizeNote(input.note),
+  }
+
   if (input.kind === 'cardio') {
     const { error } = await supabase
       .from('exercise_logs')
       .update({
         cardio_type: input.cardioType.trim(),
         duration_minutes: input.durationMinutes,
+        ...extras,
       })
       .eq('id', logId)
 
@@ -156,6 +184,7 @@ export async function updateExerciseLog(
     .update({
       cardio_type: null,
       duration_minutes: null,
+      ...extras,
     })
     .eq('id', logId)
 
@@ -236,6 +265,8 @@ export async function getExerciseLogsForDate(
       workout_program_id,
       cardio_type,
       duration_minutes,
+      rir,
+      note,
       program_exercises ( name, exercise_kind ),
       workout_programs ( name ),
       exercise_log_sets (
@@ -272,6 +303,8 @@ export async function getExerciseLogsForDate(
       program_name: program?.name ?? 'Workout',
       cardio_type: row.cardio_type,
       duration_minutes: row.duration_minutes,
+      rir: row.rir,
+      note: row.note,
       sets,
     }
   })
